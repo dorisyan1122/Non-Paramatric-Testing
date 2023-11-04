@@ -1,2 +1,2 @@
 # PPOL6819-assignment06
-Ivy and Doris's assignment06
+Doris and Ivy's assignment06
