@@ -1,0 +1,121 @@
+---
+title: "Assignment06"
+author: "Doris Yan, Ivy Xiu"
+format: html
+editor: visual
+bibliography: references.bib
+embed-resources: true
+---
+
+## Exercise 02
+
+@martinez2018 conducted a randomized controlled trial to test the effect of a complementary feeding education program on stunted children in Guatemala. 324 children with a height-for-age Z-score less than to equal to -2.5 SD were divided into the control (n=163) and the treatment group (n=161). The control group receives usual care, while the treatment group receives usual care and individualized caregiver complementary feeding education. The continuous outcome variable is participants' height-for-age Z score with or without the intervention, and the differences between control and treatment were evaluated with t-test. Their results fail to reject the null and conclude that there is no significant difference in height-for-age Z score between the control and treatment. We will be reanalyzing their null hypothesis. 
+
+## Exercise 03
+```{r load libraries and dataset, output=FALSE}
+library(here)
+library(tidyverse)
+feeding<-read_excel(here("feeding.xls"))
+```
+
+```{r tidy data}
+glimpse(feeding)
+feeding_tidy<-feeding |>
+  select(Grupo,HAZ_pre,HAZ_post)|>
+  rename(group=Grupo)|>
+  mutate(diff_HAZ=HAZ_post-HAZ_pre)|>
+  na.omit()
+```
+
+## Exercise 04
+
+## Exercise 05
+
+## Exercise 06
+```{r}
+
+set.seed(20230402)
+
+sim_data <- bind_rows(
+  tibble(group = "1", x = rnorm(n = 8, mean = 0, sd = 1)),
+  tibble(group = "2", x = rnorm(n = 8, mean = 1, sd = 1))
+)
+#' Implement a permutation test for means
+#'
+#' @param x A numeric vector
+#' @param group_size The group size of group 1
+#'
+#' @return A permutation distribution 
+#' 
+permute_means <- function(x, group_size = 8) {
+  
+  # combn() returns a matrix with group_size rows
+  # and a column for every combination of integers associated with x
+  indices <- combn(x = 1:length(x), m = group_size)
+  
+  index <- 1:ncol(indices)
+
+  # 1. extract a vector of indices stored as a column in the indices matrix
+  # 2. extract only the observations in x included in the vector of indices
+  # 3. take the mean of those observations
+  dist <- map_dbl(
+    .x = index, 
+    .f = ~ mean(x[indices[, .x]]) - mean(x[-indices[, .x]])
+  )
+  
+  return(dist)
+  
+}
+
+# create the permutation distribution
+permutation_dist <- permute_means(sim_data$x, 8)
+
+# visualize the permutation distribution
+tibble(x = permutation_dist) |>
+  ggplot(aes(x)) +
+  geom_histogram()
+```
+
+
+```{r}
+#' Implement a permutation test for means
+#'
+#' @param x A numeric vector
+#' @param group_size The group size of group 1
+#'
+#' @return A permutation distribution 
+#' 
+permute_means <- function(x, group_size = 151) {
+  
+  # combn() returns a matrix with group_size rows
+  # and a column for every combination of integers associated with x
+  indices <- combn(x = 1:length(x), m = group_size)
+  
+  index <- 1:ncol(indices)
+
+  # 1. extract a vector of indices stored as a column in the indices matrix
+  # 2. extract only the observations in x included in the vector of indices
+  # 3. take the mean of those observations
+  dist <- map_dbl(
+    .x = index, 
+    .f = ~ mean(x[indices[, .x]]) - mean(x[-indices[, .x]])
+  )
+  
+  return(dist)
+  
+}
+
+# create the permutation distribution
+permutation_dist <- permute_means(feeding_tidy$diff_HAZ, 151)
+
+# visualize the permutation distribution
+tibble(feeding_tidy$diff_HAZ = permutation_dist) |>
+  ggplot(aes(feeding_tidy$diff_HAZ)) +
+  geom_histogram()
+```
+
+
+### References
+Rohloff, Peter, 2018, "Replication Data for: Effect of an individualized complementary feeding caregiver education intervention on growth and dietary quality in stunted Guatemalan children: An individually randomized controlled trial.", https://doi.org/10.7910/DVN/1MVDY7, Harvard Dataverse, V1
+
+
