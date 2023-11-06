@@ -1,0 +1,127 @@
+---
+title: "assignment06"
+author: "Xuyan "Ivy" Xiu"
+format: html
+editor: visual
+execute: 
+  eval: true
+  echo: true
+  warning: false
+bibliography: references.bib
+---
+
+# Exercise 02
+
+[@chamie2021]
+
+# Exercise 03
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(haven)
+library(here)
+library(readxl)
+a06 <- read_excel(here("assignment06.xls"))
+
+a06_tidy <- a06 |>
+  select(Grupo, HAZ_pre, HAZ_post)
+
+a06_tidy <- mutate(a06_tidy, change_HAZ = HAZ_post - HAZ_pre)
+```
+
+# Exercise 04
+
+```{r}
+a06_tidy|>
+  ggplot(aes(x = change_HAZ)) +
+  geom_density() +
+  labs(title = "Kernel Density Plot for Change in Length/height-for-age Z-score", 
+       x = "Change in length/height-for-age Z-score", 
+       y = "Density")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The visualization shows the change in length/height-for-age Z-score. The change in length/height-for-age Z-score ranges from -1.5 to 1.0. Overall, the peak of the plot is around 0, with a density around 0.9, meaning that a 0 change in length/height-for-age Z-score is most common among the children. The spread of distribution is relatively symmetrical and bell-shaped, indicating that the change in Z-score is relatively normally distributed. What can be inferred from this plot is that the intervention didn't result in a large change in the length/height-for-age Z-score for the sample in the study.
+
+```{r}
+a06_tidy|>
+  ggplot(aes(x = HAZ_pre)) +
+  geom_density() +
+  labs(title = "Kernel Density Plot for Length/height-for-age Z-score at Baseline", 
+       x = "Length/height-for-age Z-score at Baseline", 
+       y = "Density")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The visualization shows the length/height-for-age Z-score at baseline. The length/height-for-age Z-score at baseline ranges from around -6 to 0. Overall, the peak of the plot is around -3, with a density around 0.6, meaning that a length/height-for-age Z score of -3 at baseline is most common among the children. The spread of distribution is relatively symmetrical, but there are more values concentrated at Z-score less than -2 and below, which indicates that there are more children with a length/height-for-age Z-score below -2 at baseline. What can be inferred from this plot is that most of the children in the study has a length/height-for-age 3 standard deviation below the mean at baseline.
+
+```{r}
+a06_tidy|>
+  ggplot(aes(x = HAZ_post)) +
+  geom_density() +
+  labs(title = "Kernel Density Plot for Length/height-for-age Z-score at Study Exit", 
+       x = "Length/height-for-age Z-score at Study Exit", 
+       y = "Density")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+The visualization shows the length/height-for-age Z-score at study exit. The length/height-for-age Z-score at study exit ranges from around -6 to 0. Overall, the peak of the plot is around -3, with a density around 0.6, meaning that a length/height-for-age Z score of -3 at study exit is most common among the children. The spread of distribution is relatively symmetrical. What can be inferred from this plot is that most of the children in the study has a length/height-for-age 3 standard deviation below the mean at study exit.
+
+# Exercise 05
+
+```{r}
+a06_tidy |>
+  ggplot(aes(x = Grupo, y = change_HAZ)) +
+  geom_smooth(method = "loess") +
+    labs(title = "Relationship between Group and Change in Length/height-for-age Z-score", 
+         x = "Group",
+         y = "Change in Length/height-for-age Z-score")+
+    theme(plot.title = element_text(hjust = 0.5))
+```
+Using LOESS to interpreter the relationship in this case is misleading because it appears that there are values in between 0 and 1 for the group variable on the x-axis. However, since the Group variable only take on vale 0 for the control group and 1 for the treatment group, the values in between 0 and 1 doesn't make sense. 
+
+```{r}
+a06_tidy |>
+  ggplot(aes(x = Grupo, y = HAZ_pre)) +
+  geom_smooth(method = "loess") +
+    labs(title = "Relationship between Group and Change in Length/height-for-age Z-score", 
+         x = "Group",
+         y = "Change in Length/height-for-age Z-score")+
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+a06_tidy |>
+  ggplot(aes(x = Grupo, y = HAZ_post)) +
+  geom_smooth(method = "loess") +
+    labs(title = "Relationship between Group and Change in Length/height-for-age Z-score", 
+         x = "Group",
+         y = "Change in Length/height-for-age Z-score")+
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+# Exercise 06
+```{r}
+install.packages("infer")
+library(infer) 
+
+a06_tidy$Grupo <- as.factor(a06_tidy$Grupo)
+
+q6_point_estimate <-  a06_tidy|>
+  specify(change_HAZ ~ Grupo) |>
+  calculate(stat = "diff in means", order = c("0", "1"))
+
+q6_perm_dist<- a06_tidy |>
+  specify(response = change_HAZ, explanatory = Grupo) |>
+  hypothesize(null = "independence") |>
+  generate(reps = 5000, type = "permute") |>
+  calculate(stat = "diff in means", order = c("0", "1"))
+
+q6_perm_dist |>
+  visualize() +
+  shade_p_value(obs_stat = q6_point_estimate, direction = "two-sided")
+
+q6_perm_dist |>
+  get_p_value(obs_stat = q6_point_estimate, direction = "two-sided")
+```
