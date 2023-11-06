@@ -7,115 +7,134 @@ bibliography: references.bib
 embed-resources: true
 ---
 
-## Exercise 02
+## Exercise 02 Paper Overview
 
-@martinez2018 conducted a randomized controlled trial to test the effect of a complementary feeding education program on stunted children in Guatemala. 324 children with a height-for-age Z-score less than to equal to -2.5 SD were divided into the control (n=163) and the treatment group (n=161). The control group receives usual care, while the treatment group receives usual care and individualized caregiver complementary feeding education. The continuous outcome variable is participants' height-for-age Z score with or without the intervention, and the differences between control and treatment were evaluated with t-test. Their results fail to reject the null and conclude that there is no significant difference in height-for-age Z score between the control and treatment. We will be reanalyzing their null hypothesis. 
+@martinez2018 conducted a randomized controlled trial to test the effect of a complementary feeding education program on stunted children in Guatemala. 324 stunted children with height-for-age z-score (HAZ) less than to equal to -2.5 SD were divided into the control ($N$=163) and the treatment group ($N$=161). The control group received usual care, while the treatment group received individualized caregiver complementary feeding education in addition to usual care. HAZ is a continuous random variable, and the difference in HAZ between control and treatment indicates the efficacy of the education program, which can be assessed with a t-test. According to the data [@rohloff], the results from the data fail to reject the null that there is no significant difference in height-for-age z-score between the control and treatment. We will be reanalyzing their null hypothesis.
 
-## Exercise 03
+## Exercise 03 Load, Clean, and Tidy Data
+
 ```{r load libraries and dataset, output=FALSE}
 library(here)
 library(tidyverse)
+library(readxl)
 feeding<-read_excel(here("feeding.xls"))
 ```
 
-```{r tidy data}
+```{r tidy data, output=FALSE}
 glimpse(feeding)
 feeding_tidy<-feeding |>
   select(Grupo,HAZ_pre,HAZ_post)|>
   rename(group=Grupo)|>
+  # calculate the difference in HAZ between control and treatment
   mutate(diff_HAZ=HAZ_post-HAZ_pre)|>
+  # remove NA values
   na.omit()
 ```
 
-## Exercise 04
-
-## Exercise 05
-
-## Exercise 06
-```{r}
-
-set.seed(20230402)
-
-sim_data <- bind_rows(
-  tibble(group = "1", x = rnorm(n = 8, mean = 0, sd = 1)),
-  tibble(group = "2", x = rnorm(n = 8, mean = 1, sd = 1))
-)
-#' Implement a permutation test for means
-#'
-#' @param x A numeric vector
-#' @param group_size The group size of group 1
-#'
-#' @return A permutation distribution 
-#' 
-permute_means <- function(x, group_size = 8) {
-  
-  # combn() returns a matrix with group_size rows
-  # and a column for every combination of integers associated with x
-  indices <- combn(x = 1:length(x), m = group_size)
-  
-  index <- 1:ncol(indices)
-
-  # 1. extract a vector of indices stored as a column in the indices matrix
-  # 2. extract only the observations in x included in the vector of indices
-  # 3. take the mean of those observations
-  dist <- map_dbl(
-    .x = index, 
-    .f = ~ mean(x[indices[, .x]]) - mean(x[-indices[, .x]])
-  )
-  
-  return(dist)
-  
-}
-
-# create the permutation distribution
-permutation_dist <- permute_means(sim_data$x, 8)
-
-# visualize the permutation distribution
-tibble(x = permutation_dist) |>
-  ggplot(aes(x)) +
-  geom_histogram()
-```
-
+## Exercise 04 KDE
 
 ```{r}
-#' Implement a permutation test for means
-#'
-#' @param x A numeric vector
-#' @param group_size The group size of group 1
-#'
-#' @return A permutation distribution 
-#' 
-permute_means <- function(x, group_size = 151) {
-  
-  # combn() returns a matrix with group_size rows
-  # and a column for every combination of integers associated with x
-  indices <- combn(x = 1:length(x), m = group_size)
-  
-  index <- 1:ncol(indices)
-
-  # 1. extract a vector of indices stored as a column in the indices matrix
-  # 2. extract only the observations in x included in the vector of indices
-  # 3. take the mean of those observations
-  dist <- map_dbl(
-    .x = index, 
-    .f = ~ mean(x[indices[, .x]]) - mean(x[-indices[, .x]])
-  )
-  
-  return(dist)
-  
-}
-
-# create the permutation distribution
-permutation_dist <- permute_means(feeding_tidy$diff_HAZ, 151)
-
-# visualize the permutation distribution
-tibble(feeding_tidy$diff_HAZ = permutation_dist) |>
-  ggplot(aes(feeding_tidy$diff_HAZ)) +
-  geom_histogram()
+feeding_tidy|>
+  ggplot(mapping = aes(x = diff_HAZ)) +
+  geom_density(color = "red") +
+  labs(title = "Kernel Density Estimation of Differences in HAZ",
+       x = "HAZ Difference", 
+       y = "Density")
 ```
 
+This KDE estimates the probability density of height-for-age z-score (HAZ) difference between the control and treatment group. The curve is symmetrical and bell-shaped, indicating that the change in HAZ is normally distributed. The distribution of frequencies is highest around 0, meaning that there is mostly no difference in HAZ between control and treatment group. What can be inferred from KDE is that the intervention does not result in a change in HAZ for the stunted children sample.
 
-### References
-Rohloff, Peter, 2018, "Replication Data for: Effect of an individualized complementary feeding caregiver education intervention on growth and dietary quality in stunted Guatemalan children: An individually randomized controlled trial.", https://doi.org/10.7910/DVN/1MVDY7, Harvard Dataverse, V1
+```{r}
+feeding_tidy|>
+  ggplot(mapping = aes(x = HAZ_pre)) +
+  geom_density(color="red") +
+  labs(title = "Kernel Density Estimation of Baseline HAZ", 
+       x = "HAZ at Baseline", 
+       y = "Density")
+```
 
+This KDE estimates probability density of height-for-age z-score (HAZ) at baseline. Observations are concentrated at around -3, meaning that a baseline HAZ of about -3 is the most common in the sample. The shape of the distribution is skewed to the right, with the right tail (greater values) longer than the left tail (smaller values). In a skewed right distribution, there are fewer children with a high HAZ than with a lower HAZ. The distribution makes sense because the study chooses stunted children based on the criterion that their HAZ is below -2.5SD [@martinez2018].
 
+```{r}
+feeding_tidy|>
+  ggplot(mapping = aes(x = HAZ_post)) +
+  geom_density(color = "red") +
+  labs(title = "Kernel Density Estimation of HAZ After Intervention", 
+       x = "HAZ After Intervention", 
+       y = "Density")
+```
+
+This KDE estimates probability density of height-for-age z-score (HAZ) after intervention. Similar to KDE of HAZ at baseline, observations are concentrated at around -3, meaning that a HAZ of about -3 after intervention is the most common in the sample. The distribution is less skewed but is still right skewed. There are more children with a lower HAZ than a higher HAZ post intervention.
+
+## Exercise 05 LOESS
+
+```{r}
+feeding_tidy |>
+  ggplot(mapping = aes(x = group, y = diff_HAZ)) +
+  geom_smooth(method = "loess") +
+    labs(title = "Group and Difference in HAZ", 
+         x = "Group",
+         y = "HAZ Difference")+
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+LOESS presents a linear relationship between of group and HAZ. However, it is not informative to use LOESS, because LOESS plots group as a continuous variable when in fact group is a binary predictor variable (i.e. 0 for control group and 1 for treatment group).
+
+## Exercise 06 Non-parametric testing
+
+### 6.1 Assumptions
+
+The authors uses a two-sample t-test to test the null hypothesis that treatment group does not affect height-for-age z-score. The assumptions they use are
+
+1\. Data in control and treatment group is a random sample drawn from the population since this is a randomized controlled trial (RCT).
+
+2\. Height-for-age z-score is normally distributed.
+
+3\. The population have equal variances, verified by the test below.
+
+```{r}
+feeding_tidy |>
+  group_by(group) |>
+  summarize(var(diff_HAZ))
+
+# test for equality of variances
+var.test(diff_HAZ ~ group, data = feeding_tidy)
+```
+
+In non-parametric testing, there are less assumptions. For example, it only assumes that data from the population has continuous distribution, with no assumption on the specific distribution.
+
+### 6.2 Null and Alternative Hypothesis
+
+$H_0:\mu_{control}=\mu_{treatment}$
+
+$H_a:\mu_{control}\neq\mu_{treatment}$
+
+If p-value is less than 0.5, we will reject the null and conclude that there is a significant difference in population mean HAZ difference between control and treatment group.
+
+### 6.3 Permutation Test
+
+```{r}
+library(infer) 
+feeding_tidy$group<-as.factor(feeding_tidy$group)
+
+point_estimate <-  feeding_tidy|>
+  specify(diff_HAZ ~ group)|>
+  calculate(stat = "diff in means", order = c("0", "1"))
+
+perm_dist<- feeding_tidy |>
+  specify(response = diff_HAZ, explanatory = group) |>
+  hypothesize(null = "independence") |>
+  generate(reps = 5000, type = "permute") |>
+  calculate(stat = "diff in means", order = c("0", "1"))
+
+perm_dist |>
+  visualize() +
+  shade_p_value(obs_stat = point_estimate, direction = "two-sided")
+
+perm_dist |>
+  get_p_value(obs_stat = point_estimate, direction = "two-sided")
+```
+
+### 6.4 Interpretation
+
+p-value is greater than 0.05. This is insufficient evidence to reject the null hypothesis at 5% significance level. We conclude that the mean change in height-for-age z-score is not statistically different between control and treatment. The non-parametric testing reaches the same conclusion as the paper that the complementary feeding education program does not improve stunted children' height-for-age z-score.
