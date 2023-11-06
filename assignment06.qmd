@@ -5,11 +5,13 @@ format: html
 editor: visual
 bibliography: references.bib
 embed-resources: true
+execute: 
+  warning: false
 ---
 
 ## Exercise 02 Paper Overview
 
-@martinez2018 conducted a randomized controlled trial to test the effect of a complementary feeding education program on stunted children in Guatemala. 324 stunted children with height-for-age z-score (HAZ) less than to equal to -2.5 SD were divided into the control ($N$=163) and the treatment group ($N$=161). The control group received usual care, while the treatment group received individualized caregiver complementary feeding education in addition to usual care. HAZ is a continuous random variable, and the difference in HAZ between control and treatment indicates the efficacy of the education program, which can be assessed with a t-test. According to the data [@rohloff], the results from the data fail to reject the null that there is no significant difference in height-for-age z-score between the control and treatment. We will be reanalyzing their null hypothesis.
+@martinez2018 conducted a randomized controlled trial to test the effect of a complementary feeding education program on stunted children in Guatemala. 324 stunted children with height-for-age Z score (HAZ) less than to equal to -2.5 SD were divided into the control ($N$=163) and the treatment group ($N$=161). The control group received usual care, while the treatment group received individualized caregiver complementary feeding education in addition to usual care. HAZ is a continuous random variable, and the difference in HAZ between control and treatment indicates the efficacy of the education program, which can be assessed with Student's z. According to the data [@rohloff], the authors fail to reject the null hypothesis that there is no significant difference in the change in height-for-age Z score between the control and treatment. We will be reanalyzing their null hypothesis.
 
 ## Exercise 03 Load, Clean, and Tidy Data
 
@@ -40,9 +42,10 @@ feeding_tidy|>
   labs(title = "Kernel Density Estimation of Differences in HAZ",
        x = "HAZ Difference", 
        y = "Density")
+summary(feeding_tidy$diff_HAZ)
 ```
 
-This KDE estimates the probability density of height-for-age z-score (HAZ) difference between the control and treatment group. The curve is symmetrical and bell-shaped, indicating that the change in HAZ is normally distributed. The distribution of frequencies is highest around 0, meaning that there is mostly no difference in HAZ between control and treatment group. What can be inferred from KDE is that the intervention does not result in a change in HAZ for the stunted children sample.
+This KDE estimates the probability density of height-for-age Z score (HAZ) difference in the sample. HAZ difference ranges from -1.49 to 1.24 with a mean and a median of 0.01. The curve is symmetrical and bell-shaped, indicating that the change in HAZ across control and treatment group is normally distributed in the sample. HAZ difference is concentrated at 0, meaning that in the 296 observations (excluding NA values), there is mostly no difference in HAZ pre-intervention and post-intervention. 
 
 ```{r}
 feeding_tidy|>
@@ -51,9 +54,10 @@ feeding_tidy|>
   labs(title = "Kernel Density Estimation of Baseline HAZ", 
        x = "HAZ at Baseline", 
        y = "Density")
+summary(feeding_tidy$HAZ_pre)
 ```
 
-This KDE estimates probability density of height-for-age z-score (HAZ) at baseline. Observations are concentrated at around -3, meaning that a baseline HAZ of about -3 is the most common in the sample. The shape of the distribution is skewed to the right, with the right tail (greater values) longer than the left tail (smaller values). In a skewed right distribution, there are fewer children with a high HAZ than with a lower HAZ. The distribution makes sense because the study chooses stunted children based on the criterion that their HAZ is below -2.5SD [@martinez2018].
+This KDE estimates probability density of height-for-age Z score (HAZ) at baseline. HAZ at baseline ranges from -5.47 to -0.17 with a mean of -3.42 and a median of -3.33. Observations are concentrated at around -3, meaning that a baseline HAZ at about -3 is the most common in the sample. The shape of the distribution is skewed to the right, with the right tail (greater values) longer than the left tail (smaller values). In a  right-skewed distribution, there are fewer children with a high HAZ than with a lower HAZ. The distribution makes sense because the study chooses stunted children sample based on the criterion that the child's baseline HAZ is less than or equal to -2.5SD [@martinez2018].
 
 ```{r}
 feeding_tidy|>
@@ -62,35 +66,49 @@ feeding_tidy|>
   labs(title = "Kernel Density Estimation of HAZ After Intervention", 
        x = "HAZ After Intervention", 
        y = "Density")
+summary(feeding_tidy$HAZ_post)
 ```
-
-This KDE estimates probability density of height-for-age z-score (HAZ) after intervention. Similar to KDE of HAZ at baseline, observations are concentrated at around -3, meaning that a HAZ of about -3 after intervention is the most common in the sample. The distribution is less skewed but is still right skewed. There are more children with a lower HAZ than a higher HAZ post intervention.
+This KDE estimates probability density of height-for-age Z score (HAZ) after intervention. HAZ after intervention ranges from -5.35 to -0.81 with a mean  of -3.40 and a median of -3.38. Similar to KDE of HAZ at baseline, observations are concentrated at around -3, meaning that a HAZ of about -3 after intervention is the most common in the sample. The distribution is less skewed but is still right skewed since the median is less the mean. There are more children with a lower HAZ than a higher HAZ post intervention.
 
 ## Exercise 05 LOESS
 
 ```{r}
-feeding_tidy |>
-  ggplot(mapping = aes(x = group, y = diff_HAZ)) +
-  geom_smooth(method = "loess") +
-    labs(title = "Group and Difference in HAZ", 
-         x = "Group",
-         y = "HAZ Difference")+
-    theme(plot.title = element_text(hjust = 0.5))
-```
+feeding_LOESS<-feeding|>
+  select(WAZ_pre,WAZ_post,HAZ_pre,HAZ_post)|>
+  na.omit()
 
-LOESS presents a linear relationship between of group and HAZ. However, it is not informative to use LOESS, because LOESS plots group as a continuous variable when in fact group is a binary predictor variable (i.e. 0 for control group and 1 for treatment group).
+# Visualize the relationship between weight-for-age Z score and height-for-age Z score at baseline 
+feeding_LOESS|>
+  ggplot(mapping = aes(x = WAZ_pre, y = HAZ_pre)) +
+  geom_smooth(method = "loess") +
+    labs(title = "Relationship between WAZ and HAZ at Baseline", 
+         x = "Weight-for-age Z score (WAZ)",
+         y = "Height-for-age Z score (HAZ)")
+```
+Children's weight-for-age Z score and height-for-age Z score at baseline are positively correlated. It makes sense because the more that the child weighs, the greater the height.
+
+```{r}
+# Visualize the relationship between weight-for-age Z score and height-for-age Z score post intervention
+feeding_LOESS|>
+  ggplot(mapping = aes(x = WAZ_post, y = HAZ_post)) +
+  geom_smooth(method = "loess") +
+    labs(title = "Relationship between WAZ and HAZ at the Exit of the Study", 
+         x = "Weight-for-age Z score (WAZ)",
+         y = "Height-for-age Z score (HAZ)")
+```
+Children's weight-for-age Z score and height-for-age Z score at the exit of the study are positively correlated. It makes sense because the more that the child weighs, the greater the height.
 
 ## Exercise 06 Non-parametric testing
 
 ### 6.1 Assumptions
 
-The authors uses a two-sample t-test to test the null hypothesis that treatment group does not affect height-for-age z-score. The assumptions they use are
+The authors uses a two-sample t-test to test the null hypothesis that treatment group does not affect height-for-age Z score. The assumptions they use are
 
 1\. Data in control and treatment group is a random sample drawn from the population since this is a randomized controlled trial (RCT).
 
-2\. Height-for-age z-score is normally distributed.
+2\. Height-for-age Z score is normally distributed.
 
-3\. The population have equal variances, verified by the test below.
+3\. The population have equal variances, verified by the test below. There is insufficient evidence to reject the null that the population have equal variances. The variances are equal.
 
 ```{r}
 feeding_tidy |>
@@ -101,7 +119,7 @@ feeding_tidy |>
 var.test(diff_HAZ ~ group, data = feeding_tidy)
 ```
 
-In non-parametric testing, there are less assumptions. For example, it only assumes that data from the population has continuous distribution, with no assumption on the specific distribution.
+In non-parametric testing, there are less assumptions. For example, it only assumes that data from the population is continuous, with no assumption on the specific distribution.
 
 ### 6.2 Null and Alternative Hypothesis
 
@@ -124,11 +142,13 @@ point_estimate <-  feeding_tidy|>
 perm_dist<- feeding_tidy |>
   specify(response = diff_HAZ, explanatory = group) |>
   hypothesize(null = "independence") |>
-  generate(reps = 5000, type = "permute") |>
+  generate(reps = 10000, type = "permute") |>
   calculate(stat = "diff in means", order = c("0", "1"))
 
 perm_dist |>
-  visualize() +
+  visualize()+
+  labs(title="Permutations of Differences",
+  subtitle="Generated Under Null Hypothesis of No Difference in Means")+
   shade_p_value(obs_stat = point_estimate, direction = "two-sided")
 
 perm_dist |>
@@ -137,4 +157,4 @@ perm_dist |>
 
 ### 6.4 Interpretation
 
-p-value is greater than 0.05. This is insufficient evidence to reject the null hypothesis at 5% significance level. We conclude that the mean change in height-for-age z-score is not statistically different between control and treatment. The non-parametric testing reaches the same conclusion as the paper that the complementary feeding education program does not improve stunted children' height-for-age z-score.
+The 2-Sample Difference of Means test shows that *p* value is greater than 0.05. There is insufficient evidence to reject the null hypothesis at 5% significance level. We conclude that the mean change in height-for-age Z score is not statistically different between control and treatment. The non-parametric testing reaches the same conclusion as the paper that the complementary feeding education program does not improve stunted children' height-for-age Z score.
